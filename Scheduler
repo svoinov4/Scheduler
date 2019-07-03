@@ -1,0 +1,194 @@
+import java.io.File;
+import java.util.Scanner;
+import java.util.*;
+
+public class Scheduler {
+
+    public static void main(String[] args) throws Exception {
+        SchedulePossible(ReadSchedules());
+        System.out.println(Arrays.deepToString(ScheduleLabeled()));
+        List<int[]> outputs = ScheduleUpdate(ScheduleLabeled());
+        System.out.println(Arrays.toString(outputs.get(0)));
+
+    }
+
+    public static int NumberOfLines() throws Exception {
+        //Load file
+        File inputFile = new File("/Users/Sasha/Downloads/ScheduleInputs.txt");
+        Scanner scanner1 = new Scanner(inputFile);
+        //Calculate the number of schedules
+        int lines = 0;
+        while (scanner1.hasNextLine()) {
+            scanner1.nextLine();
+            lines++;
+        }
+        //Exit if more schedules than slots in the 12 hour period
+        if (lines > 24) {
+            System.out.println("There are too many people to fit everyone today - a schedule isn't possible!");
+            System.exit(0);
+        }
+
+        return lines - 1;
+    }
+
+    // This method read our input file and outputs an array[][] of availabilities
+    public static int[][] ReadSchedules() throws Exception {
+        //Load file
+        File inputFile = new File("/Users/Sasha/Downloads/ScheduleInputs.txt");
+
+        //Declare scheduling array[][]
+        int [][] schedule = new int[NumberOfLines()][24];
+        //Fill scheduling array from file
+        Scanner scanner2 = new Scanner(inputFile);
+        for(int i = 0; i < (NumberOfLines()); i++) {
+            String line = scanner2.nextLine();
+            for (int j = 0; j < 24; j++) {
+                schedule[i][j] = Integer.parseInt(line.split(" ")[j]);
+            }
+        }
+        return schedule;
+    }
+
+
+    //This method checks for whether a schedule is possible from the ReadSchedules array[][]
+    public static boolean SchedulePossible(int[][] sample) throws Exception {
+
+        ArrayList<int[]> checklist = new ArrayList<>();
+
+        for(int i = 0;i < NumberOfLines();i++) {
+            if (RowSum(ReadSchedules(), i) == 0) {
+                System.out.println("Someone isn't available at all - a schedule isn't possible!");
+                System.exit(0);
+            }
+            if (RowSum(ReadSchedules(), i) == 1) {
+                checklist.add(SpecificRow(i));
+            }
+        }
+        //Check for rows of sum 1 that are identical
+        for (int i = 0; i < checklist.size(); i++) {
+            for (int j = i+1; j < checklist.size(); j++) {
+                if (Arrays.toString(checklist.get(i)).equals(Arrays.toString(checklist.get(j)))) {
+                    System.out.println("Some people with limited availability have overlapping schedules - " +
+                            "a schedule isn't possible!");
+                    System.exit(0);
+                }
+            }
+        }
+
+        int relevantCols = 0;
+
+        for(int i = 0;i < 24;i++) {
+            int colSum = ColSum(ReadSchedules(), i);
+            if (colSum > 0) {
+                relevantCols++;
+            }
+        }
+        if (relevantCols < NumberOfLines()) {
+            System.out.println("There are scheduling conflicts - a schedule isn't possible!");
+            System.exit(0);
+        }
+
+        return true;
+    }
+
+    //This method outputs an array[] for a particular row in ReadSchedule[][]
+    public static int[] SpecificRow(int rowNumber) throws Exception{
+        int [] row = new int[24];
+        int [][] referenceMatrix = ReadSchedules();
+        for(int i = 0; i < 24;i++) {
+            row[i] = referenceMatrix[rowNumber][i];
+        }
+        return row;
+    }
+
+    //This method finds the sum of a row in an array[][]
+    public static int RowSum(int[][] matrix, int rowNumber) throws Exception {
+        int[][] referenceMatrix = matrix;
+        int rowSum = 0;
+        for(int i = 0; i < 24; i++) {
+            rowSum += referenceMatrix[rowNumber][i];
+        }
+        return rowSum;
+    }
+
+
+    //This method finds the sum of a column in an array[][]
+    public static int ColSum(int[][] matrix, int colNumber) throws Exception{
+        int[][] referenceMatrix = matrix;
+        int colSum = 0;
+        for(int i = 0; i < NumberOfLines() - 1; i++) {
+            colSum += referenceMatrix[i][colNumber];
+        }
+        return colSum;
+    }
+
+
+    //This method implements linear search for a specific element of an array[]
+    // Linear-search function to find the index of an element
+    public static int findIndex(int arr[], int t)
+    {
+
+        // if array is Null
+        if (arr == null) {
+            return -1;
+        }
+
+        // find length of array
+        int len = arr.length;
+        int i = 0;
+
+        // traverse in the array
+        while (i < len) {
+
+            // if the i-th element is t
+            // then return the index
+            if (arr[i] == t) {
+                return i;
+            }
+            else {
+                i = i + 1;
+            }
+        }
+        return -1;
+    }
+
+    //This method identifies and removes elements from ScheduleList that must be scheduled at a certain slot
+    public static List<int[]> ScheduleUpdate(int[][] previousList) throws Exception {
+
+        List info = new ArrayList();
+        int[][] nextScheduleVersion = previousList;
+        int[] filledSlots = new int[24];
+
+        for(int i = 0;i < nextScheduleVersion.length;i++) {
+            if (RowSum(nextScheduleVersion, i) == 1) {
+                int index = findIndex(SpecificRow(i), 1);
+                filledSlots[index] = i+1;
+                for(int j = 0;j < nextScheduleVersion.length;j++) {
+                        nextScheduleVersion[j][index] = 0;
+                }
+                System.out.println(Arrays.deepToString(nextScheduleVersion));
+            }
+
+        }
+
+
+        info.add(filledSlots);
+        info.add(nextScheduleVersion);
+        return info;
+    }
+
+    //This method labels a possible ReadSchedules array[][] for later processing
+    public static int [][] ScheduleLabeled() throws Exception {
+
+        int[][] referenceMatrix = ReadSchedules();
+        int[][] labeledMatrix = new int[NumberOfLines()][25];
+        for(int i = 0; i < (NumberOfLines()); i++) {
+            for (int j = 0; j < 24; j++) {
+                labeledMatrix[i][j] = referenceMatrix[i][j];
+            }
+            labeledMatrix[i][24] = i + 1;
+        }
+        return labeledMatrix;
+        }
+
+    }
